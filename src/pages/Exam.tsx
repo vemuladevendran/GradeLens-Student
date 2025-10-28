@@ -129,20 +129,32 @@ const Exam = () => {
   const parseAnswersFromText = (text: string): Record<number, string> => {
     const parsedAnswers: Record<number, string> = {};
     const numQuestions = mockExam.questions.length;
-    
-    // Strategy 1: Match "Question X:" or "Answer X:" or "Q X:" patterns (case insensitive)
-    const questionPattern = /(?:question|answer|q\.?|a\.?)\s*(\d+)[:\.]?\s*([^\n]+(?:\n(?!(?:question|answer|q\.?|a\.?)\s*\d+).*)*)/gi;
-    
-    let match;
-    while ((match = questionPattern.exec(text)) !== null) {
-      const questionNum = parseInt(match[1]);
-      const answer = match[2].trim();
-      if (questionNum && answer && questionNum <= numQuestions) {
-        parsedAnswers[questionNum] = answer;
+
+    // Strategy A: Capture blocks starting with "Question <n>" until next "Question <m>" or end
+    const blockRegex = /Question\s*(\d+)\s*[:\.]?\s*([\s\S]*?)(?=Question\s*\d+\s*[:\.]?|$)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = blockRegex.exec(text)) !== null) {
+      const qNum = parseInt(m[1]);
+      const ans = (m[2] || "").trim();
+      if (qNum && ans && qNum <= numQuestions) {
+        parsedAnswers[qNum] = ans;
       }
     }
 
-    // Strategy 2: Match lines starting with numbers (1., 1), 1:, or just "1 ")
+    // Strategy B: If not found, match common prefixes like "Q1:", "Answer 1:", or numeric lists
+    if (Object.keys(parsedAnswers).length === 0) {
+      const questionPattern = /(?:question|answer|q\.?|a\.?)\s*(\d+)\s*[:\.]?\s*([\s\S]*?)(?=(?:question|answer|q\.?|a\.?)\s*\d+\s*[:\.]?|$)/gi;
+      let match;
+      while ((match = questionPattern.exec(text)) !== null) {
+        const questionNum = parseInt(match[1]);
+        const answer = (match[2] || "").trim();
+        if (questionNum && answer && questionNum <= numQuestions) {
+          parsedAnswers[questionNum] = answer;
+        }
+      }
+    }
+
+    // Strategy C: Numbered lines fallback (1., 1), 1:, or 1 <space>)
     if (Object.keys(parsedAnswers).length === 0) {
       const lines = text.split(/\r?\n/);
       let currentQuestion = 0;
@@ -150,37 +162,20 @@ const Exam = () => {
 
       lines.forEach((line) => {
         const trimmedLine = line.trim();
-        // Match: "1.", "1)", "1:", "1 ", or just "1" followed by text
         const numberMatch = trimmedLine.match(/^(\d+)[\.\):\s]+(.*)$/);
         if (numberMatch) {
-          // Save previous answer
           if (currentQuestion > 0 && currentAnswer) {
             parsedAnswers[currentQuestion] = currentAnswer.trim();
           }
           currentQuestion = parseInt(numberMatch[1]);
           currentAnswer = numberMatch[2] || "";
         } else if (currentQuestion > 0 && trimmedLine) {
-          // Continue adding to current answer
           currentAnswer += (currentAnswer ? " " : "") + trimmedLine;
         }
       });
 
-      // Save last answer
       if (currentQuestion > 0 && currentAnswer) {
         parsedAnswers[currentQuestion] = currentAnswer.trim();
-      }
-    }
-
-    // Strategy 3: If still no answers, try splitting text into equal chunks
-    if (Object.keys(parsedAnswers).length === 0) {
-      const cleanText = text.trim();
-      const paragraphs = cleanText.split(/\n\s*\n/).filter(p => p.trim().length > 10);
-      
-      if (paragraphs.length > 0) {
-        // Assign paragraphs to questions sequentially
-        paragraphs.slice(0, numQuestions).forEach((para, index) => {
-          parsedAnswers[index + 1] = para.trim();
-        });
       }
     }
 
