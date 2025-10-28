@@ -103,8 +103,11 @@ const Exam = () => {
         fullText += pageText + "\n";
       }
 
+      console.log("Extracted text from PDF:", fullText);
+
       // Parse answers from the extracted text
       const parsedAnswers = parseAnswersFromText(fullText);
+      console.log("Parsed answers:", parsedAnswers);
       setAnswers(parsedAnswers);
 
       toast({
@@ -125,40 +128,59 @@ const Exam = () => {
 
   const parseAnswersFromText = (text: string): Record<number, string> => {
     const parsedAnswers: Record<number, string> = {};
+    const numQuestions = mockExam.questions.length;
     
-    // Try to match patterns like "Question 1:" or "Answer 1:" or "1."
+    // Strategy 1: Match "Question X:" or "Answer X:" or "Q X:" patterns (case insensitive)
     const questionPattern = /(?:question|answer|q\.?|a\.?)\s*(\d+)[:\.]?\s*([^\n]+(?:\n(?!(?:question|answer|q\.?|a\.?)\s*\d+).*)*)/gi;
     
     let match;
     while ((match = questionPattern.exec(text)) !== null) {
       const questionNum = parseInt(match[1]);
       const answer = match[2].trim();
-      if (questionNum && answer) {
+      if (questionNum && answer && questionNum <= numQuestions) {
         parsedAnswers[questionNum] = answer;
       }
     }
 
-    // If no pattern matched, split by numbers at the start of lines
+    // Strategy 2: Match lines starting with numbers (1., 1), 1:, or just "1 ")
     if (Object.keys(parsedAnswers).length === 0) {
-      const lines = text.split("\n");
+      const lines = text.split(/\r?\n/);
       let currentQuestion = 0;
       let currentAnswer = "";
 
       lines.forEach((line) => {
-        const numberMatch = line.match(/^(\d+)[\.\):\s]/);
+        const trimmedLine = line.trim();
+        // Match: "1.", "1)", "1:", "1 ", or just "1" followed by text
+        const numberMatch = trimmedLine.match(/^(\d+)[\.\):\s]+(.*)$/);
         if (numberMatch) {
+          // Save previous answer
           if (currentQuestion > 0 && currentAnswer) {
             parsedAnswers[currentQuestion] = currentAnswer.trim();
           }
           currentQuestion = parseInt(numberMatch[1]);
-          currentAnswer = line.replace(/^\d+[\.\):\s]+/, "");
-        } else if (currentQuestion > 0) {
-          currentAnswer += " " + line;
+          currentAnswer = numberMatch[2] || "";
+        } else if (currentQuestion > 0 && trimmedLine) {
+          // Continue adding to current answer
+          currentAnswer += (currentAnswer ? " " : "") + trimmedLine;
         }
       });
 
+      // Save last answer
       if (currentQuestion > 0 && currentAnswer) {
         parsedAnswers[currentQuestion] = currentAnswer.trim();
+      }
+    }
+
+    // Strategy 3: If still no answers, try splitting text into equal chunks
+    if (Object.keys(parsedAnswers).length === 0) {
+      const cleanText = text.trim();
+      const paragraphs = cleanText.split(/\n\s*\n/).filter(p => p.trim().length > 10);
+      
+      if (paragraphs.length > 0) {
+        // Assign paragraphs to questions sequentially
+        paragraphs.slice(0, numQuestions).forEach((para, index) => {
+          parsedAnswers[index + 1] = para.trim();
+        });
       }
     }
 
