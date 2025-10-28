@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Upload, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import * as pdfjsLib from "pdfjs-dist";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,11 +40,17 @@ const mockExam = {
   ],
 };
 
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 const Exam = () => {
   const { examId } = useParams();
   const navigate = useNavigate();
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAnswerChange = (questionId: number, value: string) => {
     setAnswers({ ...answers, [questionId]: value });
@@ -64,6 +71,97 @@ const Exam = () => {
     navigate("/grades");
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || file.type !== "application/pdf") {
+      toast({
+        title: "Invalid file",
+        description: "Please upload a PDF file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadedFile(file);
+    setIsParsing(true);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+
+      // Extract text from all pages
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(" ");
+        fullText += pageText + "\n";
+      }
+
+      // Parse answers from the extracted text
+      const parsedAnswers = parseAnswersFromText(fullText);
+      setAnswers(parsedAnswers);
+
+      toast({
+        title: "PDF parsed successfully!",
+        description: `Extracted ${Object.keys(parsedAnswers).length} answers from the PDF.`,
+      });
+    } catch (error) {
+      console.error("Error parsing PDF:", error);
+      toast({
+        title: "Error parsing PDF",
+        description: "Failed to extract answers from the PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const parseAnswersFromText = (text: string): Record<number, string> => {
+    const parsedAnswers: Record<number, string> = {};
+    
+    // Try to match patterns like "Question 1:" or "Answer 1:" or "1."
+    const questionPattern = /(?:question|answer|q\.?|a\.?)\s*(\d+)[:\.]?\s*([^\n]+(?:\n(?!(?:question|answer|q\.?|a\.?)\s*\d+).*)*)/gi;
+    
+    let match;
+    while ((match = questionPattern.exec(text)) !== null) {
+      const questionNum = parseInt(match[1]);
+      const answer = match[2].trim();
+      if (questionNum && answer) {
+        parsedAnswers[questionNum] = answer;
+      }
+    }
+
+    // If no pattern matched, split by numbers at the start of lines
+    if (Object.keys(parsedAnswers).length === 0) {
+      const lines = text.split("\n");
+      let currentQuestion = 0;
+      let currentAnswer = "";
+
+      lines.forEach((line) => {
+        const numberMatch = line.match(/^(\d+)[\.\):\s]/);
+        if (numberMatch) {
+          if (currentQuestion > 0 && currentAnswer) {
+            parsedAnswers[currentQuestion] = currentAnswer.trim();
+          }
+          currentQuestion = parseInt(numberMatch[1]);
+          currentAnswer = line.replace(/^\d+[\.\):\s]+/, "");
+        } else if (currentQuestion > 0) {
+          currentAnswer += " " + line;
+        }
+      });
+
+      if (currentQuestion > 0 && currentAnswer) {
+        parsedAnswers[currentQuestion] = currentAnswer.trim();
+      }
+    }
+
+    return parsedAnswers;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -80,6 +178,41 @@ const Exam = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="space-y-6">
+          {/* PDF Upload Section */}
+          <Card className="border-2 border-dashed border-primary/30 bg-accent/10">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <FileText className="h-8 w-8" />
+                  <h3 className="text-lg font-semibold">Upload Answer PDF</h3>
+                </div>
+                <p className="text-sm text-muted-foreground text-center max-w-md">
+                  Upload a PDF containing your answers and we'll automatically fill in the answer fields below.
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isParsing}
+                  size="lg"
+                  variant="outline"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isParsing ? "Parsing PDF..." : uploadedFile ? "Change PDF" : "Upload PDF"}
+                </Button>
+                {uploadedFile && (
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {uploadedFile.name}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
           {mockExam.questions.map((question, index) => (
             <Card key={question.id}>
               <CardHeader>

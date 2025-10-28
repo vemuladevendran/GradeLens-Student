@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, ClipboardList, GraduationCap, Download } from "lucide-react";
+import { ArrowLeft, FileText, GraduationCap, Download } from "lucide-react";
 
 // Mock data - replace with actual API calls
 const mockCourse = {
@@ -13,11 +13,6 @@ const mockCourse = {
     { id: 1, title: "Course Syllabus", type: "PDF", url: "#" },
     { id: 2, title: "Week 1 - Introduction to Programming", type: "PDF", url: "#" },
     { id: 3, title: "Week 2 - Variables and Data Types", type: "PDF", url: "#" },
-  ],
-  assignments: [
-    { id: 1, title: "Assignment 1 - Hello World", dueDate: "2025-11-01" },
-    { id: 2, title: "Assignment 2 - Variables Practice", dueDate: "2025-11-08" },
-    { id: 3, title: "Assignment 3 - Control Flow", dueDate: "2025-11-15" },
   ],
   exams: [
     { id: 1, title: "Midterm Exam", date: "2025-11-20" },
@@ -48,14 +43,10 @@ const CourseDetails = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="notes" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2">
             <TabsTrigger value="notes">
               <FileText className="h-4 w-4 mr-2" />
               Notes
-            </TabsTrigger>
-            <TabsTrigger value="assignments">
-              <ClipboardList className="h-4 w-4 mr-2" />
-              Assignments
             </TabsTrigger>
             <TabsTrigger value="exams">
               <GraduationCap className="h-4 w-4 mr-2" />
@@ -85,24 +76,6 @@ const CourseDetails = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="assignments" className="mt-6">
-            <div className="space-y-4">
-              {mockCourse.assignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div className="flex items-center gap-3">
-                      <ClipboardList className="h-5 w-5 text-primary" />
-                      <div>
-                        <CardTitle className="text-lg">{assignment.title}</CardTitle>
-                        <CardDescription>Due: {assignment.dueDate}</CardDescription>
-                      </div>
-                    </div>
-                    <Button size="sm">Open</Button>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
 
           <TabsContent value="exams" className="mt-6">
             <div className="space-y-4">
