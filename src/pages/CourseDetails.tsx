@@ -149,8 +149,9 @@ const CourseDetails = () => {
                         <Button 
                           size="sm" 
                           onClick={() => navigate(`/exam/${exam.id}`, { state: { exam, courseId } })}
+                          disabled={exam.is_taken}
                         >
-                          {exam.received_score !== undefined && exam.received_score > 0 ? "View Results" : "Take Test"}
+                          {exam.is_taken ? "Already Taken" : "Take Test"}
                         </Button>
                       </div>
                     </CardHeader>

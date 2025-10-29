@@ -85,9 +85,10 @@ export interface Exam {
   exam_name: string;
   rubrics: string;
   overall_score: number;
+  is_taken: boolean;
   received_score?: number;
   overall_feedback?: string | null;
-  assessment_questions: AssessmentQuestion[];
+  assessment_questions?: AssessmentQuestion[];
 }
 
 export const api = {

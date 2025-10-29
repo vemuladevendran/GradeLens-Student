@@ -34,6 +34,7 @@ const Exam = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [wordCounts, setWordCounts] = useState<Record<number, number>>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -67,6 +68,8 @@ const Exam = () => {
 
   const handleAnswerChange = (questionId: number, value: string) => {
     setAnswers({ ...answers, [questionId]: value });
+    const wordCount = value.trim().split(/\s+/).filter(word => word.length > 0).length;
+    setWordCounts({ ...wordCounts, [questionId]: wordCount });
   };
 
   const handleSubmit = async () => {
@@ -293,7 +296,12 @@ const Exam = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Label htmlFor={`answer-${question.id}`}>Your Answer</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor={`answer-${question.id}`}>Your Answer</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {wordCounts[question.id] || 0} words (min: {question.min_words})
+                    </span>
+                  </div>
                   <Textarea
                     id={`answer-${question.id}`}
                     placeholder={`Type your answer here (minimum ${question.min_words} words)...`}
