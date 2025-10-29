@@ -16,7 +16,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -34,7 +34,9 @@ const Profile = () => {
       title: "Logged out",
       description: "See you next time!",
     });
-    navigate("/login");
+    setTimeout(() => {
+      navigate("/login", { replace: true });
+    }, 100);
   };
 
   if (!user) {
