@@ -9,15 +9,6 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, TakeExamResponse } from "@/lib/api";
 import * as pdfjsLib from "pdfjs-dist";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 // Configure PDF.js worker for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -35,7 +26,6 @@ const Exam = () => {
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [wordCounts, setWordCounts] = useState<Record<number, number>>({});
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,7 +75,13 @@ const Exam = () => {
       };
 
       await api.submitExam(token, parseInt(courseId), parseInt(examId), payload);
-      setShowConfirmation(true);
+      
+      toast({
+        title: "Exam Submitted Successfully!",
+        description: "Your answers have been submitted and will be graded soon.",
+      });
+      
+      navigate(`/course/${courseId}`);
     } catch (error) {
       toast({
         title: "Error",
@@ -95,10 +91,6 @@ const Exam = () => {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleConfirmSubmit = () => {
-    navigate("/grades");
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,23 +337,6 @@ const Exam = () => {
           </Card>
         </div>
       </main>
-
-      {/* Confirmation Dialog */}
-      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Exam Submitted Successfully!</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your answers have been submitted successfully. The AI auto-grader will evaluate your responses and you can view your results in the Grades section.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleConfirmSubmit}>
-              View Grades
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
