@@ -28,6 +28,14 @@ export interface SignupResponse {
   student_id?: string;
 }
 
+export interface Course {
+  id: number;
+  course_name: string;
+  course_code: string;
+  course_description: string;
+  exams: any[];
+}
+
 export const api = {
   signup: async (data: SignupData): Promise<SignupResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/students/`, {
@@ -58,6 +66,23 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Login failed");
+    }
+
+    return response.json();
+  },
+
+  getCourses: async (token: string): Promise<Course[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/courses/`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch courses");
     }
 
     return response.json();
