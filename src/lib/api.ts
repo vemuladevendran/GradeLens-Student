@@ -50,10 +50,10 @@ export interface AssessmentQuestion {
   question: string;
   question_weight: number;
   min_words: number;
-  response: string | null;
-  received_weight: number;
-  feedback: string | null;
-  is_graded: boolean;
+  response?: string | null;
+  received_weight?: number;
+  feedback?: string | null;
+  is_graded?: boolean;
 }
 
 export interface Exam {
@@ -61,8 +61,8 @@ export interface Exam {
   exam_name: string;
   rubrics: string;
   overall_score: number;
-  received_score: number;
-  overall_feedback: string | null;
+  received_score?: number;
+  overall_feedback?: string | null;
   assessment_questions: AssessmentQuestion[];
 }
 
@@ -170,7 +170,7 @@ export const api = {
   },
 
   getCourseExams: async (token: string, courseId: number): Promise<Exam[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/exams/`, {
+    const response = await fetch(`${API_BASE_URL}/api/student/courses/${courseId}/exams/`, {
       method: "GET",
       headers: {
         "Authorization": `Token ${token}`,

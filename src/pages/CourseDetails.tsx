@@ -140,7 +140,7 @@ const CourseDetails = () => {
                                 Questions: <span className="font-semibold">{exam.assessment_questions.length}</span>
                               </span>
                             </div>
-                            {exam.received_score > 0 && (
+                            {exam.received_score !== undefined && exam.received_score > 0 && (
                               <div className="mt-2 text-sm">
                                 <span className="text-primary font-semibold">
                                   Your Score: {exam.received_score}/{exam.overall_score}
@@ -152,9 +152,8 @@ const CourseDetails = () => {
                         <Button 
                           size="sm" 
                           onClick={() => navigate(`/exam/${exam.id}`, { state: { exam, courseId } })}
-                          disabled={exam.assessment_questions.every(q => q.is_graded)}
                         >
-                          {exam.received_score > 0 ? "View Results" : "Take Test"}
+                          {exam.received_score !== undefined && exam.received_score > 0 ? "View Results" : "Take Test"}
                         </Button>
                       </div>
                     </CardHeader>
