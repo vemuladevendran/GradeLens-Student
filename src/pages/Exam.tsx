@@ -51,7 +51,7 @@ const Exam = () => {
       
       // Pre-fill answers if they exist
       const existingAnswers: Record<number, string> = {};
-      location.state.exam.assessment_questions.forEach((q: any) => {
+      location.state.exam.assessment_questions?.forEach((q: any) => {
         if (q.response) {
           existingAnswers[q.id] = q.response;
         }
@@ -261,7 +261,7 @@ const Exam = () => {
               </div>
             </CardContent>
           </Card>
-          {exam.assessment_questions.map((question, index) => (
+          {exam.assessment_questions?.map((question, index) => (
             <Card key={question.id}>
               <CardHeader>
                 <CardTitle className="text-xl">
@@ -282,11 +282,11 @@ const Exam = () => {
                     value={answers[question.id] || question.response || ""}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                     className="min-h-[150px]"
-                    disabled={question.is_graded}
+                    disabled={question.is_graded || false}
                   />
                   {question.is_graded && (
                     <div className="mt-2 p-3 bg-accent rounded-md">
-                      <p className="text-sm font-semibold">Score: {question.received_weight}/{question.question_weight}</p>
+                      <p className="text-sm font-semibold">Score: {question.received_weight || 0}/{question.question_weight}</p>
                       {question.feedback && (
                         <p className="text-sm text-muted-foreground mt-1">{question.feedback}</p>
                       )}
