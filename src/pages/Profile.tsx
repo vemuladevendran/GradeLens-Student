@@ -1,25 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Camera, LogOut } from "lucide-react";
+import { ArrowLeft, LogOut } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState({
-    fullName: "John Doe",
-    email: "john.doe@university.edu",
-    studentId: "STU123456",
-    enrolledCoursesCount: 3,
-  });
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSave = () => {
-    // TODO: Replace with actual backend API call
     setIsEditing(false);
     toast({
       title: "Profile updated",
@@ -28,12 +29,17 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
+    logout();
     toast({
       title: "Logged out",
       description: "See you next time!",
     });
     navigate("/login");
   };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,17 +75,11 @@ const Profile = () => {
             {/* Profile Picture */}
             <div className="flex flex-col items-center gap-4">
               <Avatar className="h-24 w-24">
-                <AvatarImage src="" alt={profile.fullName} />
+                <AvatarImage src="" alt={user.full_name} />
                 <AvatarFallback className="text-2xl">
-                  {profile.fullName.split(' ').map(n => n[0]).join('')}
+                  {user.full_name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              {isEditing && (
-                <Button variant="outline" size="sm">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Change Picture
-                </Button>
-              )}
             </div>
 
             {/* Profile Details */}
@@ -88,9 +88,8 @@ const Profile = () => {
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
-                  value={profile.fullName}
-                  onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                  disabled={!isEditing}
+                  value={user.full_name}
+                  disabled
                 />
               </div>
 
@@ -99,9 +98,8 @@ const Profile = () => {
                 <Input
                   id="email"
                   type="email"
-                  value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                  disabled={!isEditing}
+                  value={user.email}
+                  disabled
                 />
               </div>
 
@@ -109,30 +107,21 @@ const Profile = () => {
                 <Label htmlFor="studentId">Student ID</Label>
                 <Input
                   id="studentId"
-                  value={profile.studentId}
+                  value={user.student_id || "N/A"}
                   disabled
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Enrolled Courses</Label>
+                <Label htmlFor="userType">User Type</Label>
                 <Input
-                  value={`${profile.enrolledCoursesCount} courses`}
+                  id="userType"
+                  value={user.user_type}
                   disabled
                 />
               </div>
             </div>
 
-            {isEditing && (
-              <div className="flex gap-3 pt-4">
-                <Button onClick={handleSave} className="flex-1">
-                  Save Changes
-                </Button>
-                <Button onClick={() => setIsEditing(false)} variant="outline" className="flex-1">
-                  Cancel
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
 

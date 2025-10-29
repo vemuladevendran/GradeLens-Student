@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -16,6 +19,12 @@ const Signup = () => {
     studentId: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/home");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,17 +40,30 @@ const Signup = () => {
 
     setIsLoading(true);
 
-    // TODO: Replace with actual backend API call
-    // Example: await fetch('YOUR_BACKEND_URL/api/signup', { method: 'POST', body: JSON.stringify(formData) })
-    
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await api.signup({
+        full_name: formData.fullName,
+        email: formData.email,
+        student_id: formData.studentId || undefined,
+        password: formData.password,
+        confirm_password: formData.confirmPassword,
+      });
+
       toast({
         title: "Account created",
         description: "Welcome! Please login to continue.",
       });
+      
       navigate("/login");
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Signup failed",
+        description: error instanceof Error ? error.message : "Failed to create account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
