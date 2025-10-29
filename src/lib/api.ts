@@ -45,6 +45,27 @@ export interface EnrolledCourse {
   institution_name: string;
 }
 
+export interface AssessmentQuestion {
+  id: number;
+  question: string;
+  question_weight: number;
+  min_words: number;
+  response: string | null;
+  received_weight: number;
+  feedback: string | null;
+  is_graded: boolean;
+}
+
+export interface Exam {
+  id: number;
+  exam_name: string;
+  rubrics: string;
+  overall_score: number;
+  received_score: number;
+  overall_feedback: string | null;
+  assessment_questions: AssessmentQuestion[];
+}
+
 export const api = {
   signup: async (data: SignupData): Promise<SignupResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/students/`, {
@@ -143,6 +164,23 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to unenroll from course");
+    }
+
+    return response.json();
+  },
+
+  getCourseExams: async (token: string, courseId: number): Promise<Exam[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/exams/`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch exams");
     }
 
     return response.json();

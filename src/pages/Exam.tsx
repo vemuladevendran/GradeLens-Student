@@ -1,11 +1,13 @@
-import { useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Send, Upload, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { api, Exam as ExamType } from "@/lib/api";
 import * as pdfjsLib from "pdfjs-dist";
 import {
   AlertDialog,
@@ -17,29 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Mock data - replace with actual API calls
-const mockExam = {
-  id: 1,
-  title: "Midterm Exam",
-  questions: [
-    {
-      id: 1,
-      text: "Explain the concept of Object-Oriented Programming and its main principles.",
-      rubric: "Points: 10. Should cover encapsulation, inheritance, polymorphism, and abstraction.",
-    },
-    {
-      id: 2,
-      text: "Write a function that reverses a string without using built-in reverse methods.",
-      rubric: "Points: 15. Code should be clean, efficient, and handle edge cases.",
-    },
-    {
-      id: 3,
-      text: "What are the differences between stack and heap memory allocation?",
-      rubric: "Points: 10. Should explain key differences, use cases, and implications.",
-    },
-  ],
-};
-
 // Configure PDF.js worker for Vite
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -49,11 +28,39 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 const Exam = () => {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { token } = useAuth();
+  const [exam, setExam] = useState<ExamType | null>(location.state?.exam || null);
+  const [loading, setLoading] = useState(!location.state?.exam);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!token || !examId) {
+      navigate("/home", { replace: true });
+      return;
+    }
+    
+    // If exam data was passed through navigation state, use it
+    if (location.state?.exam) {
+      setExam(location.state.exam);
+      setLoading(false);
+      
+      // Pre-fill answers if they exist
+      const existingAnswers: Record<number, string> = {};
+      location.state.exam.assessment_questions.forEach((q: any) => {
+        if (q.response) {
+          existingAnswers[q.id] = q.response;
+        }
+      });
+      setAnswers(existingAnswers);
+    } else {
+      setLoading(false);
+    }
+  }, [token, examId, navigate, location.state]);
 
   const handleAnswerChange = (questionId: number, value: string) => {
     setAnswers({ ...answers, [questionId]: value });
@@ -128,7 +135,7 @@ const Exam = () => {
 
   const parseAnswersFromText = (text: string): Record<number, string> => {
     const parsedAnswers: Record<number, string> = {};
-    const numQuestions = mockExam.questions.length;
+    const numQuestions = exam?.assessment_questions.length || 0;
 
     // Strategy A: Capture blocks starting with "Question <n>" until next "Question <m>" or end
     const blockRegex = /Question\s*(\d+)\s*[:\.]?\s*([\s\S]*?)(?=Question\s*\d+\s*[:\.]?|$)/gi;
@@ -182,6 +189,25 @@ const Exam = () => {
     return parsedAnswers;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading exam...</p>
+      </div>
+    );
+  }
+
+  if (!exam) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Exam not found</p>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -191,7 +217,9 @@ const Exam = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold text-primary">{mockExam.title}</h1>
+          <h1 className="text-3xl font-bold text-primary">{exam.exam_name}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{exam.rubrics}</p>
+          <p className="text-sm text-muted-foreground">Total Score: {exam.overall_score}</p>
         </div>
       </header>
 
@@ -233,25 +261,37 @@ const Exam = () => {
               </div>
             </CardContent>
           </Card>
-          {mockExam.questions.map((question, index) => (
+          {exam.assessment_questions.map((question, index) => (
             <Card key={question.id}>
               <CardHeader>
                 <CardTitle className="text-xl">
                   Question {index + 1}
                 </CardTitle>
-                <p className="text-base font-normal mt-2">{question.text}</p>
-                <p className="text-sm text-muted-foreground mt-2 italic">{question.rubric}</p>
+                <p className="text-base font-normal mt-2">{question.question}</p>
+                <div className="flex gap-4 text-sm text-muted-foreground mt-2">
+                  <span>Weight: {question.question_weight} points</span>
+                  <span>Min words: {question.min_words}</span>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <Label htmlFor={`answer-${question.id}`}>Your Answer</Label>
                   <Textarea
                     id={`answer-${question.id}`}
-                    placeholder="Type your answer here..."
-                    value={answers[question.id] || ""}
+                    placeholder={`Type your answer here (minimum ${question.min_words} words)...`}
+                    value={answers[question.id] || question.response || ""}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                     className="min-h-[150px]"
+                    disabled={question.is_graded}
                   />
+                  {question.is_graded && (
+                    <div className="mt-2 p-3 bg-accent rounded-md">
+                      <p className="text-sm font-semibold">Score: {question.received_weight}/{question.question_weight}</p>
+                      {question.feedback && (
+                        <p className="text-sm text-muted-foreground mt-1">{question.feedback}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
