@@ -44,6 +44,10 @@ const Home = () => {
     fetchData();
   }, [token, navigate]);
 
+  const isEnrolled = (courseId: number) => {
+    return enrolledCourses.some(course => course.id === courseId);
+  };
+
   const handleEnrollCourse = async (courseId: number) => {
     if (!token) return;
     
@@ -140,24 +144,27 @@ const Home = () => {
                     </CardContent>
                   </Card>
                 ) : (
-                  courses.map((course) => (
-                    <Card key={course.id} className="hover:shadow-lg transition-shadow">
-                      <CardHeader>
-                        <CardTitle className="text-xl">{course.course_name}</CardTitle>
-                        <div className="text-sm font-mono text-muted-foreground">{course.course_code}</div>
-                        <CardDescription>{course.course_description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button 
-                          onClick={() => handleEnrollCourse(course.id)} 
-                          className="w-full"
-                          disabled={enrolling === course.id}
-                        >
-                          {enrolling === course.id ? "Enrolling..." : "Enroll"}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))
+                  courses.map((course) => {
+                    const enrolled = isEnrolled(course.id);
+                    return (
+                      <Card key={course.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <CardTitle className="text-xl">{course.course_name}</CardTitle>
+                          <div className="text-sm font-mono text-muted-foreground">{course.course_code}</div>
+                          <CardDescription>{course.course_description}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button 
+                            onClick={() => handleEnrollCourse(course.id)} 
+                            className="w-full"
+                            disabled={enrolling === course.id || enrolled}
+                          >
+                            {enrolled ? "Already Enrolled" : enrolling === course.id ? "Enrolling..." : "Enroll"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
                 )}
               </div>
             </TabsContent>
