@@ -137,7 +137,7 @@ const CourseDetails = () => {
                                 Total Score: <span className="font-semibold">{exam.overall_score}</span>
                               </span>
                               <span className="text-muted-foreground">
-                                Questions: <span className="font-semibold">{exam.assessment_questions.length}</span>
+                                Questions: <span className="font-semibold">{exam.assessment_questions?.length || 0}</span>
                               </span>
                             </div>
                             {exam.received_score !== undefined && exam.received_score > 0 && (
