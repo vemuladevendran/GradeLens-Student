@@ -135,11 +135,27 @@ const Exam = () => {
       // Parse answers from the extracted text
       const parsedAnswers = parseAnswersFromText(fullText);
       console.log("Parsed answers:", parsedAnswers);
-      setAnswers(parsedAnswers);
+      
+      // Map question numbers to question IDs and calculate word counts
+      const mappedAnswers: Record<number, string> = {};
+      const mappedWordCounts: Record<number, number> = {};
+      
+      exam?.questions?.forEach((question, index) => {
+        const questionNumber = index + 1;
+        const answer = parsedAnswers[questionNumber];
+        if (answer) {
+          mappedAnswers[question.id] = answer;
+          const wordCount = answer.trim().split(/\s+/).filter(word => word.length > 0).length;
+          mappedWordCounts[question.id] = wordCount;
+        }
+      });
+      
+      setAnswers(mappedAnswers);
+      setWordCounts(mappedWordCounts);
 
       toast({
         title: "PDF parsed successfully!",
-        description: `Extracted ${Object.keys(parsedAnswers).length} answers from the PDF.`,
+        description: `Extracted ${Object.keys(mappedAnswers).length} answers from the PDF.`,
       });
     } catch (error) {
       console.error("Error parsing PDF:", error);
