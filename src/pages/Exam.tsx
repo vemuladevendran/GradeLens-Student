@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Send, Upload, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, Exam as ExamType } from "@/lib/api";
+import { api, TakeExamResponse } from "@/lib/api";
 import * as pdfjsLib from "pdfjs-dist";
 import {
   AlertDialog,
@@ -30,54 +30,71 @@ const Exam = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = useAuth();
-  const [exam, setExam] = useState<ExamType | null>(location.state?.exam || null);
-  const [loading, setLoading] = useState(!location.state?.exam);
+  const [exam, setExam] = useState<TakeExamResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const courseId = location.state?.courseId;
 
   useEffect(() => {
-    if (!token || !examId) {
+    if (!token || !examId || !courseId) {
       navigate("/home", { replace: true });
       return;
     }
     
-    // If exam data was passed through navigation state, use it
-    if (location.state?.exam) {
-      setExam(location.state.exam);
-      setLoading(false);
-      
-      // Pre-fill answers if they exist
-      const existingAnswers: Record<number, string> = {};
-      location.state.exam.assessment_questions?.forEach((q: any) => {
-        if (q.response) {
-          existingAnswers[q.id] = q.response;
-        }
-      });
-      setAnswers(existingAnswers);
-    } else {
-      setLoading(false);
-    }
-  }, [token, examId, navigate, location.state]);
+    const fetchExamData = async () => {
+      try {
+        const examData = await api.takeExam(token, parseInt(courseId), parseInt(examId));
+        setExam(examData);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load exam. Please try again.",
+          variant: "destructive",
+        });
+        navigate(-1);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExamData();
+  }, [token, examId, courseId, navigate]);
 
   const handleAnswerChange = (questionId: number, value: string) => {
     setAnswers({ ...answers, [questionId]: value });
   };
 
   const handleSubmit = async () => {
-    // TODO: Replace with actual backend API call
-    // Example: await fetch('YOUR_BACKEND_URL/api/submit-exam', { method: 'POST', body: JSON.stringify({ examId, answers }) })
-    
-    setShowConfirmation(true);
+    if (!token || !examId || !courseId) return;
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        answers: Object.entries(answers).map(([questionId, answerText]) => ({
+          question_id: parseInt(questionId),
+          answer_text: answerText,
+        })),
+      };
+
+      await api.submitExam(token, parseInt(courseId), parseInt(examId), payload);
+      setShowConfirmation(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit exam. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleConfirmSubmit = () => {
-    toast({
-      title: "Exam submitted successfully!",
-      description: "Your answers have been recorded. You can view your grades once grading is complete.",
-    });
     navigate("/grades");
   };
 
@@ -135,7 +152,7 @@ const Exam = () => {
 
   const parseAnswersFromText = (text: string): Record<number, string> => {
     const parsedAnswers: Record<number, string> = {};
-    const numQuestions = exam?.assessment_questions.length || 0;
+    const numQuestions = exam?.questions?.length || 0;
 
     // Strategy A: Capture blocks starting with "Question <n>" until next "Question <m>" or end
     const blockRegex = /Question\s*(\d+)\s*[:\.]?\s*([\s\S]*?)(?=Question\s*\d+\s*[:\.]?|$)/gi;
@@ -220,6 +237,7 @@ const Exam = () => {
           <h1 className="text-3xl font-bold text-primary">{exam.exam_name}</h1>
           <p className="text-sm text-muted-foreground mt-1">{exam.rubrics}</p>
           <p className="text-sm text-muted-foreground">Total Score: {exam.overall_score}</p>
+          <p className="text-sm text-muted-foreground">Questions: {exam.questions?.length || 0}</p>
         </div>
       </header>
 
@@ -261,7 +279,7 @@ const Exam = () => {
               </div>
             </CardContent>
           </Card>
-          {exam.assessment_questions?.map((question, index) => (
+          {exam.questions?.map((question, index) => (
             <Card key={question.id}>
               <CardHeader>
                 <CardTitle className="text-xl">
@@ -279,19 +297,10 @@ const Exam = () => {
                   <Textarea
                     id={`answer-${question.id}`}
                     placeholder={`Type your answer here (minimum ${question.min_words} words)...`}
-                    value={answers[question.id] || question.response || ""}
+                    value={answers[question.id] || ""}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                     className="min-h-[150px]"
-                    disabled={question.is_graded || false}
                   />
-                  {question.is_graded && (
-                    <div className="mt-2 p-3 bg-accent rounded-md">
-                      <p className="text-sm font-semibold">Score: {question.received_weight || 0}/{question.question_weight}</p>
-                      {question.feedback && (
-                        <p className="text-sm text-muted-foreground mt-1">{question.feedback}</p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -303,9 +312,9 @@ const Exam = () => {
                 <p className="text-sm text-muted-foreground">
                   Make sure to review all answers before submitting
                 </p>
-                <Button onClick={handleSubmit} size="lg">
+                <Button onClick={handleSubmit} size="lg" disabled={submitting}>
                   <Send className="h-4 w-4 mr-2" />
-                  Submit Exam
+                  {submitting ? "Submitting..." : "Submit Exam"}
                 </Button>
               </div>
             </CardContent>

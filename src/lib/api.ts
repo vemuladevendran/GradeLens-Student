@@ -56,6 +56,30 @@ export interface AssessmentQuestion {
   is_graded?: boolean;
 }
 
+export interface TakeExamQuestion {
+  id: number;
+  question: string;
+  question_weight: number;
+  min_words: number;
+}
+
+export interface TakeExamResponse {
+  exam_id: number;
+  exam_name: string;
+  rubrics: string;
+  overall_score: number;
+  questions: TakeExamQuestion[];
+}
+
+export interface SubmitAnswer {
+  question_id: number;
+  answer_text: string;
+}
+
+export interface SubmitExamPayload {
+  answers: SubmitAnswer[];
+}
+
 export interface Exam {
   id: number;
   exam_name: string;
@@ -181,6 +205,41 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to fetch exams");
+    }
+
+    return response.json();
+  },
+
+  takeExam: async (token: string, courseId: number, examId: number): Promise<TakeExamResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/exams/${examId}/take/`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to load exam");
+    }
+
+    return response.json();
+  },
+
+  submitExam: async (token: string, courseId: number, examId: number, payload: SubmitExamPayload): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/exams/${examId}/submit/`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to submit exam");
     }
 
     return response.json();

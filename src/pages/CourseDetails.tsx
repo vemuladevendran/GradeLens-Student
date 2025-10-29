@@ -132,12 +132,9 @@ const CourseDetails = () => {
                           <div className="flex-1">
                             <CardTitle className="text-lg">{exam.exam_name}</CardTitle>
                             <CardDescription className="mt-2">{exam.rubrics}</CardDescription>
-                            <div className="mt-3 flex gap-4 text-sm">
+                            <div className="mt-3 text-sm">
                               <span className="text-muted-foreground">
                                 Total Score: <span className="font-semibold">{exam.overall_score}</span>
-                              </span>
-                              <span className="text-muted-foreground">
-                                Questions: <span className="font-semibold">{exam.assessment_questions?.length || 0}</span>
                               </span>
                             </div>
                             {exam.received_score !== undefined && exam.received_score > 0 && (
