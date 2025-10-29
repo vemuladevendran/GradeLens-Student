@@ -6,13 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, GraduationCap, User, LogOut } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, Course } from "@/lib/api";
+import { api, Course, EnrolledCourse } from "@/lib/api";
 
 const Home = () => {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState<number | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -20,10 +22,14 @@ const Home = () => {
       return;
     }
 
-    const fetchCourses = async () => {
+    const fetchData = async () => {
       try {
-        const data = await api.getCourses(token);
-        setCourses(data);
+        const [coursesData, enrolledData] = await Promise.all([
+          api.getCourses(token),
+          api.getEnrolledCourses(token),
+        ]);
+        setCourses(coursesData);
+        setEnrolledCourses(enrolledData);
       } catch (error) {
         toast({
           title: "Error",
@@ -35,8 +41,33 @@ const Home = () => {
       }
     };
 
-    fetchCourses();
+    fetchData();
   }, [token, navigate]);
+
+  const handleEnrollCourse = async (courseId: number) => {
+    if (!token) return;
+    
+    setEnrolling(courseId);
+    try {
+      await api.enrollCourse(token, courseId);
+      toast({
+        title: "Enrolled successfully",
+        description: "You have been enrolled in the course.",
+      });
+      
+      // Refresh enrolled courses
+      const enrolledData = await api.getEnrolledCourses(token);
+      setEnrolledCourses(enrolledData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to enroll in course.",
+        variant: "destructive",
+      });
+    } finally {
+      setEnrolling(null);
+    }
+  };
 
   const handleViewCourse = (courseId: number) => {
     navigate(`/course/${courseId}`);
@@ -83,7 +114,7 @@ const Home = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h2 className="text-3xl font-bold mb-2">Welcome, {user?.full_name}!</h2>
-          <p className="text-muted-foreground">Explore available courses</p>
+          <p className="text-muted-foreground">Manage your courses</p>
         </div>
 
         {loading ? (
@@ -91,33 +122,80 @@ const Home = () => {
             <p className="text-muted-foreground">Loading courses...</p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.length === 0 ? (
-              <Card className="col-span-full">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground text-center">
-                    No courses available at the moment.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              courses.map((course) => (
-                <Card key={course.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-xl">{course.course_name}</CardTitle>
-                    <div className="text-sm font-mono text-muted-foreground">{course.course_code}</div>
-                    <CardDescription>{course.course_description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={() => handleViewCourse(course.id)} className="w-full">
-                      View Course
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+          <Tabs defaultValue="available" className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="available">Available Courses</TabsTrigger>
+              <TabsTrigger value="enrolled">Enrolled Courses</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="available" className="mt-6">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {courses.length === 0 ? (
+                  <Card className="col-span-full">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground text-center">
+                        No courses available at the moment.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  courses.map((course) => (
+                    <Card key={course.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <CardTitle className="text-xl">{course.course_name}</CardTitle>
+                        <div className="text-sm font-mono text-muted-foreground">{course.course_code}</div>
+                        <CardDescription>{course.course_description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button 
+                          onClick={() => handleEnrollCourse(course.id)} 
+                          className="w-full"
+                          disabled={enrolling === course.id}
+                        >
+                          {enrolling === course.id ? "Enrolling..." : "Enroll"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="enrolled" className="mt-6">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {enrolledCourses.length === 0 ? (
+                  <Card className="col-span-full">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <GraduationCap className="h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground text-center">
+                        You haven't enrolled in any courses yet.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  enrolledCourses.map((course) => (
+                    <Card key={course.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <CardTitle className="text-xl">{course.course_name}</CardTitle>
+                        <div className="text-sm font-mono text-muted-foreground">{course.course_code}</div>
+                        <CardDescription>{course.course_description}</CardDescription>
+                        <div className="text-sm text-muted-foreground mt-2">
+                          <p>Professor: {course.professor_name}</p>
+                          <p>Institution: {course.institution_name}</p>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Button onClick={() => handleViewCourse(course.id)} className="w-full">
+                          View Details
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </main>
     </div>

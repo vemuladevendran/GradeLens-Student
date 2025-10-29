@@ -36,6 +36,15 @@ export interface Course {
   exams: any[];
 }
 
+export interface EnrolledCourse {
+  id: number;
+  course_name: string;
+  course_code: string;
+  course_description: string;
+  professor_name: string;
+  institution_name: string;
+}
+
 export const api = {
   signup: async (data: SignupData): Promise<SignupResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/students/`, {
@@ -83,6 +92,40 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to fetch courses");
+    }
+
+    return response.json();
+  },
+
+  enrollCourse: async (token: string, courseId: number): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/enroll/`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to enroll in course");
+    }
+
+    return response.json();
+  },
+
+  getEnrolledCourses: async (token: string): Promise<EnrolledCourse[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/student/enrolled-courses/`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch enrolled courses");
     }
 
     return response.json();
