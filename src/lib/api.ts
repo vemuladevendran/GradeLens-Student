@@ -130,4 +130,21 @@ export const api = {
 
     return response.json();
   },
+
+  unenrollCourse: async (token: string, courseId: number): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/unenroll/`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to unenroll from course");
+    }
+
+    return response.json();
+  },
 };

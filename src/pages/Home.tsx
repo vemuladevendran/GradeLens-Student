@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { BookOpen, GraduationCap, User, LogOut } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +16,7 @@ const Home = () => {
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState<number | null>(null);
+  const [unenrolling, setUnenrolling] = useState<number | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -75,6 +77,31 @@ const Home = () => {
 
   const handleViewCourse = (courseId: number) => {
     navigate(`/course/${courseId}`);
+  };
+
+  const handleUnenrollCourse = async (courseId: number) => {
+    if (!token) return;
+    
+    setUnenrolling(courseId);
+    try {
+      await api.unenrollCourse(token, courseId);
+      toast({
+        title: "Unenrolled successfully",
+        description: "You have been unenrolled from the course.",
+      });
+      
+      // Refresh enrolled courses
+      const enrolledData = await api.getEnrolledCourses(token);
+      setEnrolledCourses(enrolledData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to unenroll from course.",
+        variant: "destructive",
+      });
+    } finally {
+      setUnenrolling(null);
+    }
   };
 
   const handleLogout = () => {
@@ -192,10 +219,31 @@ const Home = () => {
                           <p>Institution: {course.institution_name}</p>
                         </div>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="flex flex-col gap-2">
                         <Button onClick={() => handleViewCourse(course.id)} className="w-full">
                           View Details
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full" disabled={unenrolling === course.id}>
+                              {unenrolling === course.id ? "Unenrolling..." : "Unenroll"}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will unenroll you from {course.course_name}. You can always enroll again later.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleUnenrollCourse(course.id)}>
+                                Unenroll
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </CardContent>
                     </Card>
                   ))
