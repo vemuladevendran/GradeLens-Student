@@ -91,6 +91,13 @@ export interface Exam {
   assessment_questions?: AssessmentQuestion[];
 }
 
+export interface Note {
+  id: number;
+  title: string;
+  file_url: string;
+  uploaded_at: string;
+}
+
 export const api = {
   signup: async (data: SignupData): Promise<SignupResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/students/`, {
@@ -241,6 +248,23 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to submit exam");
+    }
+
+    return response.json();
+  },
+
+  getCourseNotes: async (token: string, courseId: number): Promise<Note[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}/notes/`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch notes");
     }
 
     return response.json();
