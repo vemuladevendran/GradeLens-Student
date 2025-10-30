@@ -93,8 +93,8 @@ export interface Exam {
 
 export interface Note {
   id: number;
-  title: string;
-  file_url: string;
+  note_name: string;
+  file: string;
   uploaded_at: string;
 }
 

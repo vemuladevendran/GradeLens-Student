@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, GraduationCap, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, Exam, EnrolledCourse, Note } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { API_BASE_URL } from "@/lib/config";
 
 const CourseDetails = () => {
   const { courseId } = useParams();
@@ -114,44 +115,52 @@ const CourseDetails = () => {
                   </CardContent>
                 </Card>
               ) : (
-                notes.map((note) => (
-                  <Card key={note.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <FileText className="h-5 w-5 text-primary mt-1" />
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{note.title}</CardTitle>
-                            <CardDescription className="mt-2">
-                              Uploaded: {new Date(note.uploaded_at).toLocaleDateString()}
-                            </CardDescription>
+                notes.map((note) => {
+                  const fileName = note.file.split('/').pop() || 'file.pdf';
+                  const fileUrl = `${API_BASE_URL}${note.file}`;
+                  
+                  return (
+                    <Card key={note.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <FileText className="h-5 w-5 text-primary mt-1" />
+                            <div className="flex-1">
+                              <CardTitle className="text-lg">{note.note_name}</CardTitle>
+                              <CardDescription className="mt-2">
+                                File: {fileName}
+                              </CardDescription>
+                              <CardDescription className="mt-1">
+                                Uploaded: {new Date(note.uploaded_at).toLocaleDateString()}
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => window.open(fileUrl, '_blank')}
+                            >
+                              View
+                            </Button>
+                            <Button 
+                              size="sm"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = fileUrl;
+                                link.download = fileName;
+                                link.click();
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => window.open(note.file_url, '_blank')}
-                          >
-                            View
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = note.file_url;
-                              link.download = note.title;
-                              link.click();
-                            }}
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                ))
+                      </CardHeader>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </TabsContent>
