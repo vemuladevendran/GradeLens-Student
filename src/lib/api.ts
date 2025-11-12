@@ -98,6 +98,35 @@ export interface Note {
   uploaded_at: string;
 }
 
+export interface GradeAnswer {
+  question_id: number;
+  question_text: string;
+  question_weight: number;
+  min_words: number;
+  answer_text: string;
+  received_weight: number;
+  feedback: string;
+  is_graded: boolean;
+}
+
+export interface GradeExam {
+  course_id: number;
+  course_name: string;
+  course_code: string;
+  exam_id: number;
+  exam_name: string;
+  submitted_at: string;
+  overall_received_score: number;
+  overall_feedback: string;
+  questions_count: number;
+  graded_answers_count: number;
+  answers: GradeAnswer[];
+}
+
+export interface GradesResponse {
+  exams: GradeExam[];
+}
+
 export const api = {
   signup: async (data: SignupData): Promise<SignupResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/students/`, {
@@ -265,6 +294,23 @@ export const api = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to fetch notes");
+    }
+
+    return response.json();
+  },
+
+  getGrades: async (token: string): Promise<GradesResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/student/exams/grades/`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch grades");
     }
 
     return response.json();
