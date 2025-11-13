@@ -8,6 +8,16 @@ import { ArrowLeft, Send, Upload, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, TakeExamResponse } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import * as pdfjsLib from "pdfjs-dist";
 
 // Configure PDF.js worker for Vite
@@ -28,6 +38,7 @@ const Exam = () => {
   const [wordCounts, setWordCounts] = useState<Record<number, number>>({});
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [showUnansweredDialog, setShowUnansweredDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const courseId = location.state?.courseId;
 
@@ -62,13 +73,38 @@ const Exam = () => {
     setWordCounts({ ...wordCounts, [questionId]: wordCount });
   };
 
-  const handleSubmit = async () => {
-    if (!token || !examId || !courseId) return;
+  const handleSubmit = () => {
+    if (!exam?.questions) return;
+
+    // Check for unanswered questions
+    const unansweredQuestions = exam.questions.filter(
+      (q) => !answers[q.id] || answers[q.id].trim() === ""
+    );
+
+    if (unansweredQuestions.length > 0) {
+      setShowUnansweredDialog(true);
+    } else {
+      confirmSubmit();
+    }
+  };
+
+  const confirmSubmit = async () => {
+    if (!token || !examId || !courseId || !exam?.questions) return;
 
     setSubmitting(true);
+    setShowUnansweredDialog(false);
+
     try {
+      // Fill unanswered questions with "not answered"
+      const finalAnswers = { ...answers };
+      exam.questions.forEach((question) => {
+        if (!finalAnswers[question.id] || finalAnswers[question.id].trim() === "") {
+          finalAnswers[question.id] = "not answered";
+        }
+      });
+
       const payload = {
-        answers: Object.entries(answers).map(([questionId, answerText]) => ({
+        answers: Object.entries(finalAnswers).map(([questionId, answerText]) => ({
           question_id: parseInt(questionId),
           answer_text: answerText,
         })),
@@ -337,6 +373,25 @@ const Exam = () => {
           </Card>
         </div>
       </main>
+
+      {/* Unanswered Questions Dialog */}
+      <AlertDialog open={showUnansweredDialog} onOpenChange={setShowUnansweredDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unanswered Questions</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unanswered questions. Are you sure you want to submit the exam? 
+              Unanswered questions will be marked as "not answered".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmit}>
+              Submit Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
