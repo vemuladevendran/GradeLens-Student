@@ -1,124 +1,113 @@
-# 🧠 GradeLens – Professor Portal  
-### AI-Powered Auto-Grading & Rubric Feedback System  
+# 🎓 GradeLens – Student Portal  
+### AI-Powered Assignment Submission & Feedback Platform  
 *Frontend built with React.js*
 
-GradeLens is an AI-powered grading platform designed to help professors evaluate student submissions faster, more consistently, and with rubric-based feedback.  
-This portal provides course management, assignment uploads, auto-grading using LLM + RAG, and detailed feedback visualization.
+The GradeLens Student Portal allows students to submit assignments, track grading status, and view AI-generated feedback based on the instructor’s rubric.  
+It provides a simple, intuitive interface to interact with the GradeLens auto-grading ecosystem.
 
 ---
 
 ## 🚀 Features
 
-### ✅ **Professor Dashboard**
-- Overview of all courses, assignments, and grading progress  
-- Stats for pending, completed, and in-progress submissions  
-- Clean and intuitive UI for seamless navigation  
+### 🏠 **Student Dashboard**
+- View enrolled courses  
+- See active, upcoming, and completed assignments  
+- Quick view of grading status: *Not Submitted, Submitted, Graded*  
 
-### 📚 **Course & Assignment Management**
-- Create, edit, and delete courses  
-- Add assignments with descriptions and rubrics  
-- Upload sample/reference solutions used by backend RAG  
-- Track assignment states (active, closed, graded)
+### 📤 **Submit Assignments**
+- Upload PDF or text-based submissions  
+- Drag-and-drop or file-picker upload  
+- Validations for file size, format, and required fields  
+- Real-time upload progress display  
 
-### 📤 **Upload Student Submissions**
-- Support for text and PDF uploads  
-- Bulk upload for multiple student files  
-- Automatic preprocessing & cleaning of submissions
+### 🧾 **Submission Management**
+- View submission history for each assignment  
+- Replace submission before deadline  
+- Timestamp for each upload  
+- Submission status tracking (Submitted → Grading → Completed)  
 
-### 🤖 **AI-Powered Auto-Grading (LLM + RAG)**
-When grading is initiated:
-- Student answer is embedded and stored  
-- Relevant context is retrieved from vector DB (pgvector)  
-- LLM evaluates using:
-  - Rubric criteria  
-  - Reference solution  
-  - PiScore scoring mechanism  
-- Generates rubric-based scores, strengths, and feedback  
+### 📝 **View AI-Generated Feedback**
+Once grading is completed by GradeLens backend:
+- View rubric-wise scoring  
+- Strengths and weaknesses of your answer  
+- Suggestions for improvement  
+- Similarity score vs. reference solution  
+- Downloadable feedback report (PDF/CSV if enabled)
 
-### 📝 **Detailed Feedback Viewer**
-- Point-wise rubric scoring  
-- Strengths and improvement suggestions  
-- Similarity scoring vs. reference answer  
-- Allows manual override/adjustment of grades
+### 🔔 **Notifications**
+- Alerts for graded assignments  
+- Upcoming deadlines  
+- Submission reminders  
 
-### 📊 **Analytics & Insights**
-- Score distribution charts  
-- Topic and rubric-level performance  
-- Class average and individual breakdown  
-- Export analytics as CSV/PDF
-
-### 🔐 **Authentication & Security**
-- JWT-based login system  
-- Protected routes using React Router  
-- Axios interceptors for secure API calls
-
-### 🎨 **Modern UI/UX**
-- Responsive dashboard layout  
-- Reusable, modular React components  
-- Toast notifications, loading states, progress bars  
-- Optimized for desktop and tablet use  
+### 🧭 **Clean & Responsive UI**
+- Mobile-friendly layout  
+- Smooth transitions and loaders  
+- Accessible components and readable typography  
 
 ---
 
-## 🛠️ Tech Stack (Frontend – React.js)
+## 🛠️ Technologies Used (Frontend – React.js)
 
 ### **Core Framework**
 - React.js (v18+)  
-- Functional components with Hooks (useState, useEffect, useContext)
+- Functional components + Hooks  
 
 ### **State Management**
-- Zustand (lightweight global store)
+- Zustand for lightweight global store  
 
 ### **Routing**
-- React Router DOM
+- React Router DOM  
 
-### **Networking**
-- Axios (with interceptors for JWT)
+### **HTTP Requests**
+- Axios for API calls  
+- Authorization headers managed automatically  
 
-### **UI & Utilities**
+### **UI Tools**
 - React Icons  
-- Custom CSS & utility classes  
-- Optional charting libraries (for analytics)  
+- Custom CSS / utility classes  
+- Toast notifications  
 
-### **Build & Tooling**
+### **Build Tools**
 - Node.js  
 - NPM  
-- Environment variables via `.env`
 
 ---
 
 
 ---
 
-## 🔧 How It Works (High-Level Flow)
+## 🔧 How It Works – Student Workflow
 
-### **1. Professor Login**
-- Authenticates using JWT  
-- Token stored in Zustand state  
+### **1. Login**
+- Student authenticates with JWT  
+- Token is stored in Zustand store  
 
-### **2. Create Course or Assignment**
-- Metadata sent to backend  
-- Rubric + reference solution saved  
+### **2. View Courses & Assignments**
+- All courses pulled from backend  
+- Assignments grouped as:
+  - Active  
+  - Completed  
+  - Due Soon  
 
-### **3. Upload Student Submissions**
-- Files sent to backend  
-- Extracted into clean text for grading  
+### **3. Submit Assignment**
+- Upload PDF/text  
+- File is validated & uploaded to backend  
+- Student sees “Submitted” status  
 
-### **4. Auto-Grading Process**
-- Text is chunked and embedded  
-- pgvector retrieves relevant solution context  
-- LLM evaluates response using:
-  - Rubric criteria
-  - Similarity scoring
-  - PiScore structured evaluation  
+### **4. Auto-Grading (Backend Process)**
+While backend handles:
+- Text extraction  
+- RAG retrieval from vector DB  
+- LLM evaluation  
+- PiScore rubric grading  
 
-### **5. Review & Finalize Grades**
-- Professor reviews scores  
-- Approves or adjusts grade  
-- Analytics automatically update  
+### **5. View Feedback**
+Once graded:
+- Student sees rubric scores  
+- AI feedback: strengths, improvements  
+- Summary visualization  
+- Downloadable report  
 
 ---
-
-
 
 
